@@ -53,6 +53,7 @@ Los estilos están hechos con **Tailwind CSS** y se compilan con Vite. `npm run 
 | `/login`, `/register` | Invitados | Acceso con Breeze |
 | `/dashboard` | Usuarios logueados | Acceso al monitor y al panel |
 | `/security-dashboard` | Solo administradores | Panel de seguridad |
+| `/security-dashboard/export` | Solo administradores | Descarga de evidencias en CSV |
 
 ---
 
@@ -120,6 +121,13 @@ Integración sobre este mismo proyecto, **sin reemplazar el login existente**: s
 
 Los eventos se guardan en la tabla `login_attempts` (el email se guarda como hash SHA-256) y en `storage/logs/security-AAAA-MM-DD.log`.
 
+### Mejoras (actividad integradora)
+
+- **Detección por cuenta:** también se cuentan los fallos contra la misma cuenta desde cualquier IP (ventana de 15 minutos). Con 3 hay alerta y con 5 la cuenta se bloquea 10 minutos para todas las IPs. Detecta ataques distribuidos que las reglas por IP no ven.
+- **Exportación de evidencias:** botón *Exportar CSV* en el panel. Solo para administradores, y cada descarga queda registrada en el log.
+
+Las dos están cubiertas por tests automáticos (`php artisan test`).
+
 ### Estructura
 
 | Parte | Archivo | Responsabilidad |
@@ -128,9 +136,10 @@ Los eventos se guardan en la tabla `login_attempts` (el email se guarda como has
 | Canal de logs | `config/logging.php` | Canal `security`, diario, nivel `info`, 30 días |
 | Tabla | `database/migrations/..._create_login_attempts_table.php` | Auditoría de intentos |
 | Listener | `app/Listeners/RecordSecurityAuthentication.php` | Registra los eventos `Login` y `Failed` |
-| Middleware | `app/Http/Middleware/SecurityLoginGuard.php` | Alerta y bloqueo por IP, aplicado solo a `POST /login` |
+| Middleware | `app/Http/Middleware/SecurityLoginGuard.php` | Alerta y bloqueo por IP y por cuenta, aplicado solo a `POST /login` |
 | Permiso | `app/Providers/AppServiceProvider.php` | Gate `viewSecurityDashboard` (usuarios con `is_admin`) |
-| Panel | `app/Http/Controllers/SecurityDashboardController.php` | Indicadores de 24 h, IPs sospechosas y últimos eventos |
+| Panel | `app/Http/Controllers/SecurityDashboardController.php` | Indicadores de 24 h, IPs sospechosas, cuentas atacadas, últimos eventos y exportación CSV |
+| Tests | `tests/Feature/SecurityModuleTest.php` | Reglas por IP y las dos mejoras |
 
 ### Capturas
 

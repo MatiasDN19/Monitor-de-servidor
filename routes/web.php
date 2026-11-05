@@ -12,9 +12,13 @@ Route::get('/', function () {
 Route::get('/servidor', [ServerController::class, 'index']);
 
 // Panel de seguridad: requiere estar logueado Y ser admin (Gate viewSecurityDashboard)
-Route::get('/security-dashboard', [SecurityDashboardController::class, 'index'])
-    ->middleware(['auth', 'can:viewSecurityDashboard'])
-    ->name('security.dashboard');
+Route::middleware(['auth', 'can:viewSecurityDashboard'])->group(function () {
+    Route::get('/security-dashboard', [SecurityDashboardController::class, 'index'])
+        ->name('security.dashboard');
+
+    Route::get('/security-dashboard/export', [SecurityDashboardController::class, 'export'])
+        ->name('security.export');
+});
 
 Route::get('/dashboard', function () {
     return view('dashboard');

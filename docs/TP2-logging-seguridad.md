@@ -31,6 +31,8 @@ El monitor no tenía login, así que se agregó Breeze en la misma rama antes de
 | `app/Http/Controllers/SecurityDashboardController.php` | Indicadores, IPs sospechosas y últimos eventos |
 | `resources/views/security-dashboard.blade.php` | Panel `/security-dashboard` (requiere `auth` + `can:viewSecurityDashboard`) |
 | `tests/TestCase.php` | Durante los tests, el canal `security` descarta los mensajes para no ensuciar la evidencia |
+| `database/migrations/..._add_identifier_index_to_login_attempts_table.php` | Índice para la detección por cuenta (mejora 1) |
+| `tests/Feature/SecurityModuleTest.php` | Tests automáticos del módulo y de las dos mejoras |
 
 ### Diferencias con el enunciado
 
@@ -158,7 +160,54 @@ Detrás de una misma IP pública puede haber muchas personas: una universidad, u
 - *Automáticas:* registrar todos los eventos, alertar al superar umbrales, aplicar bloqueos **temporales** y cortos que se levantan solos.
 - *Con revisión humana:* bloqueos permanentes, bloquear o deshabilitar una cuenta, decidir si hubo un incidente real, contactar al usuario afectado o denunciarlo.
 
-## 7. Decisión de seguridad adoptada
+## 7. Actividad integradora: dos mejoras
+
+### Mejora 1 · Detección por cuenta
+
+**Problema que resuelve.** Las reglas por IP no detectan un ataque **distribuido**: si cada intento llega desde una IP distinta (proxies, botnet), ninguna IP llega a 5 fallos y la cuenta puede ser atacada sin límite. Además, el bloqueo por IP castiga a todos los que comparten esa IP.
+
+**Cómo funciona.** `SecurityLoginGuard` cuenta también los fallos contra la **misma cuenta** (mismo `identifier_hash`, es decir, el hash del email) desde **cualquier IP**, en una ventana de **15 minutos**. La ventana es más larga que la de IP porque los ataques distribuidos suelen ser más lentos.
+
+| Fallos contra la cuenta (15 min) | Respuesta |
+|---|---|
+| 3 o 4 | `ALERT Possible targeted attack on account` (con la cantidad de IPs distintas) |
+| 5 | Cuenta bloqueada 10 minutos para todas las IPs · `CRITICAL Temporary account lock` · HTTP 429 |
+| Cuenta bloqueada | HTTP 429 · `WARNING Blocked login attempt (locked account)` · fila `blocked` |
+
+- Se agregó el índice `(identifier_hash, status, created_at)` en una migración nueva para que la consulta sea rápida.
+- El panel suma la tabla **Cuentas atacadas**, con la cantidad de fallos y de **IPs distintas**; si son 2 o más, se marca como *distribuido*.
+- El bloqueo de una cuenta no afecta a las demás.
+
+**Trade-off.** Un atacante podría bloquear a propósito la cuenta de otra persona fallando 5 veces (denegación de servicio dirigida). Por eso el bloqueo es corto y temporal, y conviene combinarlo con avisos al dueño de la cuenta.
+
+### Mejora 2 · Exportación de evidencias
+
+**Problema que resuelve.** Para analizar un incidente fuera del sistema (planilla, informe, otra herramienta) o entregarlo como evidencia hace falta sacar los datos de forma ordenada.
+
+**Cómo funciona.** El botón **Exportar CSV** del panel (`GET /security-dashboard/export`) descarga todos los intentos con `id`, fecha UTC, estado, IP, hash del identificador y navegador.
+
+- Tiene la misma protección que el panel: `auth` + `can:viewSecurityDashboard`.
+- Se genera con `streamDownload` y `lazy()`: se escribe por partes, sin cargar toda la tabla en memoria.
+- Incluye BOM UTF-8 para que Excel muestre bien los caracteres.
+- **La exportación queda registrada**: `NOTICE Security evidence exported` con el usuario, la IP y la cantidad de filas. Quién accede a los datos de auditoría también se audita.
+
+### Tests automáticos
+
+`tests/Feature/SecurityModuleTest.php` (9 tests, todos pasan junto a los 25 de Breeze):
+
+| Test | Verifica |
+|---|---|
+| Login correcto | Registra `success` |
+| Cinco fallos desde una IP | El sexto intento da 429, incluso con la contraseña correcta |
+| Ataque distribuido | 5 IPs con 1 fallo cada una bloquean la cuenta; una IP nueva recibe 429 |
+| Tres fallos contra una cuenta | Alerta, pero se puede entrar con la contraseña correcta |
+| Bloqueo aislado | Bloquear una cuenta no afecta a otra |
+| Panel | Muestra la cuenta atacada marcada como *distribuido* |
+| Exportación | Invitado → login · usuario común → 403 · admin → CSV con los datos |
+
+Las IPs se simulan con `REMOTE_ADDR`, así se reproduce un ataque distribuido sin varias máquinas.
+
+## 8. Decisión de seguridad adoptada
 
 Se aplica un **bloqueo temporal de 10 minutos por IP** después de 5 fallos en 5 minutos, con alertas desde el tercer fallo. Es una medida automática, reversible y de impacto acotado, que frena la fuerza bruta simple sin depender de una persona. La decisión de ir más allá queda para revisión humana con la evidencia del log y del panel.
 
@@ -167,6 +216,6 @@ Se aplica un **bloqueo temporal de 10 minutos por IP** después de 5 fallos en 5
 - La evaluación se hace **antes** de cada intento: el quinto fallo se registra y recién el sexto intento se bloquea (detección frente a bloqueo en tiempo real).
 - El intento que dispara el bloqueo se registra en el log como `CRITICAL`, pero no genera una fila `blocked` en la tabla; los siguientes sí.
 - No es atómico: muchos intentos concurrentes podrían pasar antes de que se cuenten.
-- Es solo por IP; no detecta ataques distribuidos ni protege una cuenta atacada desde muchas IPs.
+- La detección por cuenta (mejora 1) cubre los ataques distribuidos contra una cuenta, pero no el *password spraying*: una misma contraseña probada contra muchas cuentas distintas, con pocos intentos por cuenta.
 - Breeze trae su propio limitador (5 intentos por email + IP). Convive con este módulo, pero el middleware corta antes.
 - En producción habría que configurar proxies confiables para obtener la IP real del cliente, usar `RateLimiter`/Redis y definir una política de retención de logs.
