@@ -20,7 +20,9 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // SecurityLoginGuard revisa la IP antes de que Breeze intente autenticar
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware(\App\Http\Middleware\SecurityLoginGuard::class);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
