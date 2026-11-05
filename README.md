@@ -23,8 +23,12 @@ composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+npm install
+npm run build
 php artisan serve
 ```
+
+Los estilos están hechos con **Tailwind CSS** y se compilan con Vite. `npm run build` los genera una sola vez. Para trabajar sobre el diseño, usar `npm run dev` en otra terminal (recompila al guardar).
 
 Después abrir:
 
@@ -37,7 +41,8 @@ Después abrir:
 |---|---|---|
 | Service | `app/Services/ServerMetrics.php` | Lee los datos del sistema operativo (PHP + PowerShell/WMI) |
 | Controlador | `app/Http/Controllers/ServerController.php` | Devuelve la vista o el JSON |
-| Vista | `resources/views/servidor.blade.php` | Muestra las tarjetas y hace el polling |
+| Vista | `resources/views/servidor.blade.php` | Muestra los medidores y hace el polling |
+| Estilos | `resources/css/app.css` | Paleta, fuentes y fondo del panel (Tailwind) |
 | Rutas | `routes/web.php`, `routes/api.php` | `/servidor` y `/api/metrics` (con `throttle:60,1`) |
 
 ## Capturas
