@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Estilos base para inputs y checkboxes de las vistas de Breeze (login, registro, perfil) */
+@plugin '@tailwindcss/forms';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
