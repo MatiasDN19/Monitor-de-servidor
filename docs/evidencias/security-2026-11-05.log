@@ -1,0 +1,13 @@
+[2026-11-05 03:45:23] local.INFO: Authentication success {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:45:23] local.WARNING: Authentication failed {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:45:24] local.WARNING: Authentication failed {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:45:25] local.WARNING: Authentication failed {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:45:26] local.ALERT: Possible brute force {"ip":"127.0.0.1","failures":3} 
+[2026-11-05 03:45:26] local.WARNING: Authentication failed {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:45:27] local.ALERT: Possible brute force {"ip":"127.0.0.1","failures":4} 
+[2026-11-05 03:45:27] local.WARNING: Authentication failed {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:45:28] local.CRITICAL: Temporary IP block {"ip":"127.0.0.1","failures":5} 
+[2026-11-05 03:45:28] local.WARNING: Blocked login attempt {"ip":"127.0.0.1"} 
+[2026-11-05 03:49:53] local.WARNING: Blocked login attempt {"ip":"127.0.0.1"} 
+[2026-11-05 03:56:00] local.INFO: Authentication success {"ip":"127.0.0.1","guard":"web"} 
+[2026-11-05 03:56:12] local.INFO: Authentication success {"ip":"127.0.0.1","guard":"web"} 
