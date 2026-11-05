@@ -42,7 +42,13 @@ Después abrir:
 
 ## Capturas
 
-<!-- Agregar las capturas de /servidor y /api/metrics -->
+### Vista `/servidor`
+
+![Vista del monitor](docs/capturas/servidor.png)
+
+### Respuesta de `/api/metrics`
+
+![Respuesta de la API](docs/capturas/api-metrics.png)
 
 ## Respuestas
 
