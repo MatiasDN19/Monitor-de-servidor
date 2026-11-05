@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SecurityDashboardController;
 use App\Http\Controllers\ServerController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,6 +10,11 @@ Route::get('/', function () {
 });
 
 Route::get('/servidor', [ServerController::class, 'index']);
+
+// Panel de seguridad: requiere estar logueado Y ser admin (Gate viewSecurityDashboard)
+Route::get('/security-dashboard', [SecurityDashboardController::class, 'index'])
+    ->middleware(['auth', 'can:viewSecurityDashboard'])
+    ->name('security.dashboard');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
